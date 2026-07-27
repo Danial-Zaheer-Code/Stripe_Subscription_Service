@@ -11,3 +11,8 @@ router.post('/subscribe',
     validateToken,
     authController.paySubscription
 )
+
+router.post('/webhook',
+    express.raw({ type: 'application/json' }),
+    authController.stripeWebhook
+)
