@@ -27,6 +27,7 @@ model User {
   otp String
   otpExpiry DateTime @map("otp_expiry")
   isVerified Boolean @default(false) @map("is_verified")
+  stripeId String? @map("stripe_id")
 
   @@map("users")
 }
