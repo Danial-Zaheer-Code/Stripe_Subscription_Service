@@ -1,4 +1,4 @@
-import * as stripeService from '../services/stripeService.js';
+import * as stripeService from '../services/stripeServices.js';
 
 export async function paySubscription(req, res) {
     const userId = req.userId;

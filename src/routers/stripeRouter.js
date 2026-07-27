@@ -3,16 +3,16 @@ import { body } from "express-validator"
 import { validateRequest } from "../middleware/requestValidation.js";
 import { validateToken, validateRefreshToken } from "../middleware/tokenValidation.js";
 import { isAdmin } from "../middleware/adminValidation.js"
-import * as authController from "../controllers/authController.js";
+import * as stripeController from "../controllers/stripeController.js";
 
 export const router = express.Router();
 
 router.post('/subscribe',
     validateToken,
-    authController.paySubscription
+    stripeController.paySubscription
 )
 
 router.post('/webhook',
     express.raw({ type: 'application/json' }),
-    authController.stripeWebhook
+    stripeController.stripeWebhook
 )
