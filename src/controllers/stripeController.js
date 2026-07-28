@@ -1,4 +1,5 @@
 import * as stripeService from '../services/stripeServices.js';
+import { stripeClient } from '../config/stripeConfig.js';
 
 export async function paySubscription(req, res) {
     const userId = req.userId;
@@ -9,10 +10,9 @@ export async function paySubscription(req, res) {
 }
 
 export async function stripeWebhook(req, res) {
-
     const signature = req.headers["stripe-signature"];
 
-    const event = stripe.webhooks.constructEvent(
+    const event = stripeClient.webhooks.constructEvent(
         req.body,
         signature,
         process.env.STRIPE_WEBHOOK_SECRET
