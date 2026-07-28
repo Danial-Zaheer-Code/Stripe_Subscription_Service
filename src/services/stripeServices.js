@@ -95,61 +95,72 @@ export async function paySubscription(userId) {
 }
 
 export async function handleStripeWebhook(event) {
-    switch (event.type) {
+    try {
+        switch (event.type) {
 
-        case "checkout.session.completed": {
+            case "checkout.session.completed": {
+                console.log("Handling checkout.session.completed event.", event);
 
-            const session = event.data.object;
+                const session = event.data.object;
 
-            await prisma.user.update({
-                where: {
-                    id: session.metadata.userId
-                },
-                data: {
-                    customerId: session.customer,
-                    subscriptionId: session.subscription,
-                    subscriptionPlan: "PRO",
-                    subscriptionDate: new Date()
-                }
-            });
+                await prisma.user.update({
+                    where: {
+                        id: session.metadata.userId
+                    },
+                    data: {
+                        customerId: session.customer,
+                        subscriptionId: session.subscription,
+                        subscriptionPlan: "PRO",
+                        subscriptionDate: new Date()
+                    }
+                });
 
-            break;
+                break;
+            }
+
+            case "invoice.paid": {
+
+                console.log("Handling invoice.paid event.");
+
+                const invoice = event.data.object;
+
+                await prisma.user.update({
+                    where: {
+                        customerId: invoice.customer
+                    },
+                    data: {
+                        subscriptionDate: new Date()
+                    }
+                });
+
+                break;
+            }
+
+            case "customer.subscription.deleted": {
+
+                console.log("Handling customer.subscription.deleted event.");
+
+                const subscription = event.data.object;
+
+                await prisma.user.update({
+                    where: {
+                        customerId: subscription.customer
+                    },
+                    data: {
+                        subscriptionId: null,
+                        subscriptionPlan: "FREE",
+                        subscriptionDate: null
+                    }
+                });
+
+                break;
+            }
         }
 
-        case "invoice.paid": {
+        return success(stausCode.OK, "Webhook handled successfully");
 
-            const invoice = event.data.object;
-
-            await prisma.user.update({
-                where: {
-                    customerId: invoice.customer
-                },
-                data: {
-                    subscriptionDate: new Date()
-                }
-            });
-
-            break;
-        }
-
-        case "customer.subscription.deleted": {
-
-            const subscription = event.data.object;
-
-            await prisma.user.update({
-                where: {
-                    customerId: subscription.customer
-                },
-                data: {
-                    subscriptionId: null,
-                    subscriptionPlan: "FREE",
-                    subscriptionDate: null
-                }
-            });
-
-            break;
-        }
+    } catch (error) {
+        console.error("Error handling Stripe webhook:", error);
+        return failure(stausCode.INTERNAL_SERVER_ERROR, "Error handling Stripe webhook");
     }
-
-    return success(stausCode.OK, "Webhook handled successfully");
 }
