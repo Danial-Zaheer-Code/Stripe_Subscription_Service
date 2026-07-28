@@ -18,30 +18,9 @@ export async function stripeWebhook(req, res) {
         process.env.STRIPE_WEBHOOK_SECRET
     );
 
-    switch (event.type) {
+    const result = await stripeService.handleStripeWebhook(event);
 
-        case "checkout.session.completed":
-
-            const session = event.data.object;
-
-            console.log(session.metadata.userId);
-
-            break;
-
-        case "invoice.paid":
-
-            console.log("Subscription renewed");
-
-            break;
-
-        case "customer.subscription.deleted":
-
-            console.log("Subscription cancelled");
-
-            break;
-    }
-
-    res.sendStatus(200);
+    return res.status(result.status).json(result.responseBody);
 }
 
 export async function subscriptionSuccess(req, res) {

@@ -20,7 +20,7 @@ router.get('/failure',
     stripeController.subscriptionFailure
 )
 
-router.get('/webhook',
+router.post('/webhook',
     express.raw({ type: 'application/json' }),
     stripeController.stripeWebhook
 )
