@@ -12,7 +12,7 @@ router.post('/subscribe',
     stripeController.paySubscription
 )
 
-router.post('/webhook',
+router.get('/webhook',
     express.raw({ type: 'application/json' }),
     stripeController.stripeWebhook
 )

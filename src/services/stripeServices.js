@@ -1,10 +1,11 @@
 import * as stausCode from "../utils/statusCodes.js"
 import { prisma } from "../lib/prisma.js"
 import { success, failure } from "../utils/result.js"
+import { stripeClient } from "../config/stripeConfig.js"
 
 export async function paySubscription(userId) {
     try {
-        const session = await stripe.checkout.sessions.create({
+        const session = await stripeClient.checkout.sessions.create({
 
             mode: "subscription",
 
@@ -18,13 +19,14 @@ export async function paySubscription(userId) {
                     quantity: 1
                 }
             ],
+            success_url: `http://localhost:3000/api/stripe/webhook`,
 
             metadata: {
                 userId
             }
         });
 
-        return success(stausCode.OK, "Subscription session created successfully", { session: session });
+        return success(stausCode.OK, "Subscription session created successfully", { sessionUrl: session.url });
     }
     catch (error) {
         console.log(error)
