@@ -12,6 +12,14 @@ router.post('/subscribe',
     stripeController.paySubscription
 )
 
+router.get('/success',
+    stripeController.subscriptionSuccess
+)
+
+router.get('/failure',
+    stripeController.subscriptionFailure
+)
+
 router.get('/webhook',
     express.raw({ type: 'application/json' }),
     stripeController.stripeWebhook

@@ -43,3 +43,11 @@ export async function stripeWebhook(req, res) {
 
     res.sendStatus(200);
 }
+
+export async function subscriptionSuccess(req, res) {
+    return res.status(200).json({ message: "Subscription successful" });
+}
+
+export async function subscriptionFailure(req, res) {
+    return res.status(400).json({ message: "Subscription failed" });
+}

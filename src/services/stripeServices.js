@@ -19,7 +19,8 @@ export async function paySubscription(userId) {
                     quantity: 1
                 }
             ],
-            success_url: `http://localhost:3000/api/stripe/webhook`,
+            success_url: `http://localhost:3000/api/stripe/success`,
+            cancel_url: `http://localhost:3000/api/stripe/failure`,
 
             metadata: {
                 userId
