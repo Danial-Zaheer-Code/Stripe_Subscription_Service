@@ -35,6 +35,7 @@ model User {
   customerId String? @map("customer_id")
   subscriptionId String? @map("subscription_id")
   subscriptionPlan SubscriptionPlan @default(FREE) @map("subscription_plan")
+  subscriptionDate DateTime? @map("subscription_date")
 
   @@map("users")
 }
