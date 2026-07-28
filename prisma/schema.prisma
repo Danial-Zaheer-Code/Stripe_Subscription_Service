@@ -17,6 +17,11 @@ enum Role{
   ADMIN
 }
 
+enum SubscriptionPlan{
+  FREE
+  PRO
+}
+
 model User { 
   id    Int     @id @default(autoincrement()) 
   name  String
@@ -27,7 +32,9 @@ model User {
   otp String
   otpExpiry DateTime @map("otp_expiry")
   isVerified Boolean @default(false) @map("is_verified")
-  stripeId String? @map("stripe_id")
+  customerId String? @map("customer_id")
+  subscriptionId String? @map("subscription_id")
+  subscriptionPlan SubscriptionPlan @default(FREE) @map("subscription_plan")
 
   @@map("users")
 }
