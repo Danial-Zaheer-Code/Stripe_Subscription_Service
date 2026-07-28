@@ -32,8 +32,8 @@ model User {
   otp String
   otpExpiry DateTime @map("otp_expiry")
   isVerified Boolean @default(false) @map("is_verified")
-  customerId String? @map("customer_id")
-  subscriptionId String? @map("subscription_id")
+  customerId String? @map("customer_id") @unique
+  subscriptionId String? @map("subscription_id") @unique
   subscriptionPlan SubscriptionPlan @default(FREE) @map("subscription_plan")
   subscriptionDate DateTime? @map("subscription_date")
 
