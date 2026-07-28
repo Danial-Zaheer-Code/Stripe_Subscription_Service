@@ -96,23 +96,22 @@ export async function paySubscription(userId) {
 
 export async function handleStripeWebhook(event) {
     try {
+        console.log("Event Type:", event.type);
         switch (event.type) {
 
             case "checkout.session.completed": {
-                console.log("Handling checkout.session.completed event.", event);
+                console.log("Handling checkout.session.completed event.");
 
                 const session = event.data.object;
 
                 await prisma.user.update({
                     where: {
-                        id: session.metadata.userId
+                        id: Number(session.metadata.userId)
                     },
                     data: {
                         customerId: session.customer,
                         subscriptionId: session.subscription,
-                        subscriptionPlan: "PRO",
-                        subscriptionDate: new Date()
-                    }
+                        subscriptionPlan: "PRO"                    }
                 });
 
                 break;
