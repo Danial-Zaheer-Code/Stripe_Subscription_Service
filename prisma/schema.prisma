@@ -17,32 +17,31 @@ enum Role{
   ADMIN
 }
 
-enum SubscriptionPlan{
-  FREE
-  PRO
-}
-
 model User { 
-  id    Int     @id @default(autoincrement()) 
-  name  String
-  email String  @unique
-  password String
-  role Role @default(USER)
-  createdAt DateTime @default(now()) @map("created_at")
-  otp String
-  otpExpiry DateTime @map("otp_expiry")
-  isVerified Boolean @default(false) @map("is_verified")
-  customerId String? @map("customer_id") @unique
-  subscriptionId String? @map("subscription_id") @unique
+  id             Int              @id @default(autoincrement()) 
+  name           String
+  email          String           @unique
+  password       String
+  role           Role             @default(USER)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  otp            String
+  otpExpiry      DateTime         @map("otp_expiry")
+  isVerified     Boolean          @default(false) @map("is_verified")
+  customerId     String?          @unique @map("customer_id")
+  subscriptionId String?          @unique @map("subscription_id")
+
+  plan           Plan             @relation(fields: [planName], references: [name])
+  planName       String           @default("FREE") @map("plan_name")
 
   @@map("users")
 }
 
-model Plan{
-  id Int @id @default(autoincrement())
-  name SubscriptionPlan @map("name")
-  priceId String @unique @map("price_id")
+model Plan {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  priceId   String   @unique @map("price_id")
   createdAt DateTime @default(now()) @map("created_at")
+  users     User[]
 
   @@map("plans")
 }

@@ -15,5 +15,8 @@
     "pg": "^8.22.0",
     "stripe": "^22.3.2"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "type": "module"
 }
