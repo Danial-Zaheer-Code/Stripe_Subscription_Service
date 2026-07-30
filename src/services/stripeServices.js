@@ -4,7 +4,7 @@ import { success, failure } from "../utils/result.js"
 import { stripeClient } from "../config/stripeConfig.js"
 import { hasDaysPast } from "../utils/utils.js"
 
-export async function paySubscription(userId) {
+export async function paySubscription(userId, planId) {
     try {
         const existingUser = await prisma.user.findUnique({
             where: {
@@ -16,8 +16,11 @@ export async function paySubscription(userId) {
                 name: true,
                 customerId: true,
                 subscriptionId: true,
-                subscriptionPlan: true,
-                subscriptionDate: true
+                plan: {
+                    select: {
+                        name: true,
+                    }
+                }
             }
         });
 
@@ -25,38 +28,30 @@ export async function paySubscription(userId) {
             return failure(stausCode.NOT_FOUND, "User not found");
         }
 
-        if (
-            existingUser.subscriptionPlan === "PRO" &&
-            !hasDaysPast(existingUser.subscriptionDate, 30)
-        ) {
-            return failure(
-                stausCode.BAD_REQUEST,
-                "User already has a PRO subscription"
-            );
+        const plan = await prisma.plan.findUnique({
+            where: {
+                id: planId
+            },
+            select: {
+                id: true,
+                name: true,
+                priceId: true
+            }
+        });
+
+        if (!plan) {
+            return failure(stausCode.NOT_FOUND, "Plan not found");
         }
 
-        let customerId = existingUser.customerId;
-
-        if (!customerId) {
-            const customer = await stripeClient.customers.create({
-                email: existingUser.email,
-                name: existingUser.name,
-                metadata: {
-                    userId: existingUser.id
-                }
-            });
-
-            customerId = customer.id;
-
-            await prisma.user.update({
-                where: {
-                    id: existingUser.id
-                },
-                data: {
-                    customerId
-                }
-            });
+        if (existingUser.plan.name == plan.name) {
+            return failure(stausCode.BAD_REQUEST, "User already has the same plan");
         }
+
+        if (plan.name == "FREE") {
+            await stripe.subscriptions.cancel(existingUser.subscriptionId);
+        }
+
+        let customerId = await createCustomerIfNotExists(existingUser);
 
         const session = await stripeClient.checkout.sessions.create({
             customer: customerId,
@@ -67,7 +62,7 @@ export async function paySubscription(userId) {
 
             line_items: [
                 {
-                    price: process.env.PRO_SUBSCRIPTION_ID,
+                    price: plan.priceId,
                     quantity: 1
                 }
             ],
@@ -76,7 +71,8 @@ export async function paySubscription(userId) {
             cancel_url: "http://localhost:3000/api/stripe/failure",
 
             metadata: {
-                userId: existingUser.id
+                userId: existingUser.id,
+                planName: plan.name
             }
         });
 
@@ -94,64 +90,80 @@ export async function paySubscription(userId) {
     }
 }
 
+async function createCustomerIfNotExists(user) {
+    let customerId = user.customerId;
+
+    if (!customerId) {
+        const customer = await stripeClient.customers.create({
+            email: user.email,
+            name: user.name,
+            metadata: {
+                userId: user.id
+            }
+        });
+
+        customerId = customer.id;
+
+        await prisma.user.update({
+            where: {
+                id: user.id
+            },
+            data: {
+                customerId
+            }
+        });
+    }
+
+    return customerId;
+}
+
 export async function handleStripeWebhook(event) {
     try {
         console.log("Event Type:", event.type);
         switch (event.type) {
-
             case "checkout.session.completed": {
                 console.log("Handling checkout.session.completed event.");
-
                 const session = event.data.object;
 
                 await prisma.user.update({
-                    where: {
-                        id: Number(session.metadata.userId)
-                    },
+                    where: { customerId: session.customer }, // Note: session.customer is the Stripe ID (e.g., cus_123), use client_reference_id for your DB User ID
                     data: {
                         customerId: session.customer,
                         subscriptionId: session.subscription,
-                        subscriptionPlan: "PRO"                    }
+                        planName: session.metadata.planName
+                    }
                 });
-
                 break;
             }
 
             case "invoice.paid": {
-
                 console.log("Handling invoice.paid event.");
-
                 const invoice = event.data.object;
 
+                if (invoice.billing_reason === "subscription_create") {
+                    break;
+                }
+
                 await prisma.user.update({
-                    where: {
-                        customerId: invoice.customer
-                    },
+                    where: { customerId: invoice.customer },
                     data: {
-                        subscriptionDate: new Date()
+                        planName: invoice.lines.data[0].metadata.planName
                     }
                 });
-
                 break;
             }
 
             case "customer.subscription.deleted": {
-
                 console.log("Handling customer.subscription.deleted event.");
-
                 const subscription = event.data.object;
 
                 await prisma.user.update({
-                    where: {
-                        customerId: subscription.customer
-                    },
+                    where: { customerId: subscription.customer },
                     data: {
                         subscriptionId: null,
-                        subscriptionPlan: "FREE",
-                        subscriptionDate: null
+                        planName: "FREE", 
                     }
                 });
-
                 break;
             }
         }
