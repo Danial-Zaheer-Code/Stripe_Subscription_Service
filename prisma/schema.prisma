@@ -34,8 +34,15 @@ model User {
   isVerified Boolean @default(false) @map("is_verified")
   customerId String? @map("customer_id") @unique
   subscriptionId String? @map("subscription_id") @unique
-  subscriptionPlan SubscriptionPlan @default(FREE) @map("subscription_plan")
-  subscriptionDate DateTime? @map("subscription_date")
 
   @@map("users")
+}
+
+model Plan{
+  id Int @id @default(autoincrement())
+  name SubscriptionPlan @map("name")
+  priceId String @unique @map("price_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("plans")
 }
