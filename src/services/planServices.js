@@ -4,7 +4,7 @@ import * as statusCodes from "../utils/statusCodes.js";
 
 export async function createPlan(plan) {
     try {
-        const existingPlan = await prisma.plan.findUnique({
+        const existingPlan = await prisma.plan.findFirst({
             where: {
                 OR: [
                     { name: plan.name },
@@ -20,7 +20,7 @@ export async function createPlan(plan) {
         const createdPlan = await prisma.plan.create({
             data: plan
         });
-        return success(statusCodes.CREATED, "Plan created successfully", createdPlan);
+        return success(statusCodes.CREATED, "Plan created successfully");
     }
     catch (error) {
         console.log(error);
@@ -49,11 +49,19 @@ export async function deletePlan(planId) {
         const existingPlan = await prisma.plan.findUnique({
             where: {
                 id: planId
+            },
+            select: {
+                id: true,
+                name: true
             }
         });
 
         if (!existingPlan) {
             return failure(statusCodes.NOT_FOUND, "Plan not found");
+        }
+
+        if(existingPlan.name === "FREE") {
+            return failure(statusCodes.FORBIDDEN, "Cannot delete the FREE plan");
         }
 
         await prisma.plan.delete({
