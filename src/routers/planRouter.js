@@ -25,7 +25,7 @@ router.get("/all",
     planController.getAllPlans
 );
 
-router.delete("/delete",
+router.post("/delete",
     body("id")
         .notEmpty()
         .withMessage("Plan ID is required")
