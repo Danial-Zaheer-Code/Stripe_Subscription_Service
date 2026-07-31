@@ -48,7 +48,7 @@ export async function subscribe(userId, planId) {
         }
 
         if (plan.name == "FREE") {
-            await stripe.subscriptions.cancel(existingUser.subscriptionId);
+            await stripeClient.subscriptions.cancel(existingUser.subscriptionId);
             return success(stausCode.OK, "Subscription cancelled successfully");
         }
 
@@ -175,6 +175,11 @@ export async function handleStripeWebhook(event) {
                 console.log("Handling invoice.paid event.");
                 const invoice = event.data.object;
 
+                const subscription = await stripeClient.subscriptions.retrieve(
+                    invoice.parent.subscription_details.subscription
+                );
+
+
                 if (invoice.billing_reason === "subscription_create") {
                     break;
                 }
@@ -182,7 +187,7 @@ export async function handleStripeWebhook(event) {
                 await prisma.user.update({
                     where: { customerId: invoice.customer },
                     data: {
-                        planName: invoice.lines.data[0].metadata.planName
+                        planName: subscription.metadata.planName
                     }
                 });
                 break;
