@@ -49,39 +49,61 @@ export async function paySubscription(userId, planId) {
 
         if (plan.name == "FREE") {
             await stripe.subscriptions.cancel(existingUser.subscriptionId);
+            return success(stausCode.OK, "Subscription cancelled successfully");
         }
 
         let customerId = await createCustomerIfNotExists(existingUser);
 
-        const session = await stripeClient.checkout.sessions.create({
-            customer: customerId,
+        if (existingUser.plan.name == "FREE") {
+            const session = await stripeClient.checkout.sessions.create({
+                customer: customerId,
 
-            mode: "subscription",
+                mode: "subscription",
 
-            payment_method_types: ["card"],
+                payment_method_types: ["card"],
 
-            line_items: [
+                line_items: [
+                    {
+                        price: plan.priceId,
+                        quantity: 1
+                    }
+                ],
+
+                success_url: "http://localhost:3000/api/stripe/success",
+                cancel_url: "http://localhost:3000/api/stripe/failure",
+
+                metadata: {
+                    userId: existingUser.id,
+                    planName: plan.name
+                }
+            });
+
+            return success(
+                stausCode.OK,
+                "Subscription session created successfully",
                 {
-                    price: plan.priceId,
-                    quantity: 1
+                    sessionUrl: session.url
+                }
+            );
+        }
+
+        const subscription = await stripeClient.subscriptions.retrieve(
+            existingUser.subscriptionId
+        );
+
+        await stripeClient.subscriptions.update(existingUser.subscriptionId, {
+            items: [
+                {
+                    id: subscription.items.data[0].id,
+                    price: plan.priceId
                 }
             ],
-
-            success_url: "http://localhost:3000/api/stripe/success",
-            cancel_url: "http://localhost:3000/api/stripe/failure",
-
-            metadata: {
-                userId: existingUser.id,
-                planName: plan.name
-            }
+            proration_behavior: "create_prorations"
         });
 
         return success(
             stausCode.OK,
-            "Subscription session created successfully",
-            {
-                sessionUrl: session.url
-            }
+            "Subscription updated successfully"
         );
     }
     catch (error) {
@@ -126,7 +148,7 @@ export async function handleStripeWebhook(event) {
                 const session = event.data.object;
 
                 await prisma.user.update({
-                    where: { customerId: session.customer }, // Note: session.customer is the Stripe ID (e.g., cus_123), use client_reference_id for your DB User ID
+                    where: { customerId: session.customer },
                     data: {
                         customerId: session.customer,
                         subscriptionId: session.subscription,
@@ -161,7 +183,7 @@ export async function handleStripeWebhook(event) {
                     where: { customerId: subscription.customer },
                     data: {
                         subscriptionId: null,
-                        planName: "FREE", 
+                        planName: "FREE",
                     }
                 });
                 break;

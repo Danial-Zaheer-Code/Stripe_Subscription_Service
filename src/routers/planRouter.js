@@ -26,13 +26,14 @@ router.get("/all",
 );
 
 router.post("/delete",
+    validateToken,
+    isAdmin,
     body("id")
         .notEmpty()
         .withMessage("Plan ID is required")
         .isNumeric()
         .withMessage("Plan ID must be a number")
         .toInt(),
-    validateToken,
-    isAdmin,
+    validateRequest,
     planController.deletePlan
 );
