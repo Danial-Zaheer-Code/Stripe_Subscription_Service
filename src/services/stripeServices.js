@@ -52,7 +52,7 @@ export async function subscribe(userId, planId) {
             return success(stausCode.OK, "Subscription cancelled successfully");
         }
 
-        let customerId = await createCustomerIfNotExists(existingUser);
+        existingUser.customerId = await createCustomerIfNotExists(existingUser);
 
         if (existingUser.plan.name == "FREE") {
             return await createCheckoutSession(existingUser, plan);
@@ -95,7 +95,7 @@ async function createCustomerIfNotExists(user) {
 
 async function createCheckoutSession(user, plan) {
     const session = await stripeClient.checkout.sessions.create({
-        customer: customerId,
+        customer: user.customerId,
 
         mode: "subscription",
 
@@ -142,7 +142,8 @@ async function updateUserSubscription(user, plan) {
             userId: user.id,
             planName: plan.name
         },
-        proration_behavior: "create_prorations"
+        proration_behavior: "always_invoice",
+        payment_behavior: "allow_incomplete"
     });
 
     return success(
