@@ -18,5 +18,9 @@
   "prisma": {
     "seed": "node prisma/seed.js"
   },
+  "scripts": {
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "app": "node index.js"
+  },
   "type": "module"
 }
