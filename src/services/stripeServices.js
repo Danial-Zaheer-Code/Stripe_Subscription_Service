@@ -4,7 +4,7 @@ import { success, failure } from "../utils/result.js"
 import { stripeClient } from "../config/stripeConfig.js"
 import { hasDaysPast } from "../utils/utils.js"
 
-export async function paySubscription(userId, planId) {
+export async function subscribe(userId, planId) {
     try {
         const existingUser = await prisma.user.findUnique({
             where: {
@@ -55,56 +55,10 @@ export async function paySubscription(userId, planId) {
         let customerId = await createCustomerIfNotExists(existingUser);
 
         if (existingUser.plan.name == "FREE") {
-            const session = await stripeClient.checkout.sessions.create({
-                customer: customerId,
-
-                mode: "subscription",
-
-                payment_method_types: ["card"],
-
-                line_items: [
-                    {
-                        price: plan.priceId,
-                        quantity: 1
-                    }
-                ],
-
-                success_url: "http://localhost:3000/api/stripe/success",
-                cancel_url: "http://localhost:3000/api/stripe/failure",
-
-                metadata: {
-                    userId: existingUser.id,
-                    planName: plan.name
-                }
-            });
-
-            return success(
-                stausCode.OK,
-                "Subscription session created successfully",
-                {
-                    sessionUrl: session.url
-                }
-            );
+            return await createCheckoutSession(existingUser, plan);
         }
 
-        const subscription = await stripeClient.subscriptions.retrieve(
-            existingUser.subscriptionId
-        );
-
-        await stripeClient.subscriptions.update(existingUser.subscriptionId, {
-            items: [
-                {
-                    id: subscription.items.data[0].id,
-                    price: plan.priceId
-                }
-            ],
-            proration_behavior: "create_prorations"
-        });
-
-        return success(
-            stausCode.OK,
-            "Subscription updated successfully"
-        );
+        return await updateUserSubscription(existingUser, plan);
     }
     catch (error) {
         console.log(error)
@@ -137,6 +91,64 @@ async function createCustomerIfNotExists(user) {
     }
 
     return customerId;
+}
+
+async function createCheckoutSession(user, plan) {
+    const session = await stripeClient.checkout.sessions.create({
+        customer: customerId,
+
+        mode: "subscription",
+
+        payment_method_types: ["card"],
+
+        line_items: [
+            {
+                price: plan.priceId,
+                quantity: 1
+            }
+        ],
+
+        success_url: "http://localhost:3000/api/stripe/success",
+        cancel_url: "http://localhost:3000/api/stripe/failure",
+
+        metadata: {
+            userId: user.id,
+            planName: plan.name
+        }
+    });
+
+    return success(
+        stausCode.OK,
+        "Subscription session created successfully",
+        {
+            sessionUrl: session.url
+        }
+    );
+}
+
+async function updateUserSubscription(user, plan) {
+    const subscription = await stripeClient.subscriptions.retrieve(
+        user.subscriptionId
+    );
+
+    await stripeClient.subscriptions.update(user.subscriptionId, {
+        items: [
+            {
+                id: subscription.items.data[0].id,
+                price: plan.priceId
+            }
+        ],
+        metadata: {
+            userId: user.id,
+            planName: plan.name
+        },
+        proration_behavior: "create_prorations"
+    });
+
+    return success(
+        stausCode.OK,
+        "Subscription updated successfully"
+    );
 }
 
 export async function handleStripeWebhook(event) {

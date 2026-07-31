@@ -5,7 +5,7 @@ export async function paySubscription(req, res) {
     const userId = req.userId;
     const { planId } = req.body;
 
-    const result = await stripeService.paySubscription(userId, planId);
+    const result = await stripeService.subscribe(userId, planId);
 
     return res.status(result.status).json(result.responseBody);
 }
