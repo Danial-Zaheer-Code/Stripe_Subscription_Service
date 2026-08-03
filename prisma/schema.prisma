@@ -43,6 +43,7 @@ model Plan {
   name      String   @unique
   priceId   String   @unique @map("price_id")
   productId String   @unique @map("product_id")
+  price     Int
   createdAt DateTime @default(now()) @map("created_at")
   users     User[]
 
