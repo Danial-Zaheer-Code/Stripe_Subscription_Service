@@ -1,0 +1,25 @@
+import * as couponServices from "../services/couponServices.js";
+
+export async function createCoupon(req, res) {
+    const coupon = req.body;
+    const result = await couponServices.createCoupon(coupon);
+    return res.status(result.status).json(result);
+}
+
+export async function createUserCoupon(req, res) {
+    const { userId } = req.userId;
+    const { couponId } = req.body;
+    const result = await couponServices.createUserCoupon(userId, couponId);
+    return res.status(result.status).json(result);
+}
+
+export async function getAllCoupons(req, res) {
+    const result = await couponServices.getAllCoupons();
+    return res.status(result.status).json(result);
+}
+
+export async function getUserCoupons(req, res) {
+    const { userId } = req.userId;
+    const result = await couponServices.getUserCoupons(userId);
+    return res.status(result.status).json(result);
+}
