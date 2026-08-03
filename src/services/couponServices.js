@@ -54,17 +54,6 @@ export async function createUserCoupon(userId, couponId) {
     }
 }
 
-export async function getAllCoupons() {
-    try {
-        const coupons = await prisma.coupon.findMany();
-        return success(statusCodes.OK, "Coupons retrieved successfully", coupons);
-    }
-    catch (error) {
-        console.log(error);
-        return failure(statusCodes.INTERNAL_SERVER_ERROR, "Something went wrong. Try again later");
-    }
-}
-
 export async function deleteCoupon(couponId) {
     try {
         const existingCoupon = await prisma.coupon.findUnique({
@@ -73,12 +62,21 @@ export async function deleteCoupon(couponId) {
             },
             select: {
                 id: true,
-                couponId: true
+                couponId: true,
+                users: {
+                    select: {
+                        id: true
+                    }
+                }
             }
         });
 
         if (!existingCoupon) {
             return failure(statusCodes.NOT_FOUND, "Coupon not found");
+        }
+
+        if (existingCoupon.users.length > 0) {
+            return failure(statusCodes.CONFLICT, "Cannot delete coupon. It is associated with users.");
         }
 
         await prisma.coupon.delete({
@@ -99,7 +97,8 @@ export async function getUserCoupons(userId) {
     try {
         const userCoupons = await prisma.userCoupon.findMany({
             where: {
-                userId: userId
+                userId: userId,
+                isUsed: false
             },
             select: {
                 id: true,

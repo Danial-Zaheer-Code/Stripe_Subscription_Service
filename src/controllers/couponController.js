@@ -13,11 +13,6 @@ export async function createUserCoupon(req, res) {
     return res.status(result.status).json(result);
 }
 
-export async function getAllCoupons(req, res) {
-    const result = await couponServices.getAllCoupons();
-    return res.status(result.status).json(result);
-}
-
 export async function getUserCoupons(req, res) {
     const { userId } = req.userId;
     const result = await couponServices.getUserCoupons(userId);

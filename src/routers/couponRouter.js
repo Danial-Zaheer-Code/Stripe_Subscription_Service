@@ -35,11 +35,6 @@ router.post("/user/create",
     couponController.createUserCoupon
 );
 
-router.get("/all",
-    validateToken,
-    couponController.getAllCoupons
-);
-
 router.get("/user/all",
     validateToken,
     couponController.getUserCoupons
