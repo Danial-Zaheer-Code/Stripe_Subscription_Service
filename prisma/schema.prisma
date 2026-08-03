@@ -33,6 +33,8 @@ model User {
   plan           Plan             @relation(fields: [planName], references: [name])
   planName       String           @default("FREE") @map("plan_name")
 
+  coupons        UserCoupon[]
+
   @@map("users")
 }
 
@@ -53,5 +55,19 @@ model Coupon{
   discount  Int
   createdAt DateTime @default(now()) @map("created_at")
 
+  users    UserCoupon[]
+
   @@map("coupons")
+}
+
+model UserCoupon{
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  couponId  Int      @map("coupon_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+  coupon    Coupon   @relation(fields: [couponId], references: [id])
+
+  @@map("user_coupons")
 }
