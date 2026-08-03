@@ -7,6 +7,7 @@ async function main() {
     create: {
       name: `FREE`,
       priceId: `0`,
+      productId: `0`,
     },
   })
   console.log('Default row seeded successfully.')
