@@ -16,6 +16,15 @@ router.post("/create",
     body("priceId")
         .notEmpty()
         .withMessage("Price ID is required"),
+    body("productId")
+        .notEmpty()
+        .withMessage("Product ID is required"),
+    body("price")
+        .notEmpty()
+        .withMessage("Price is required")
+        .isNumeric()
+        .withMessage("Price must be a number")
+        .toInt(),
     validateRequest,
     planController.createPlan
 );

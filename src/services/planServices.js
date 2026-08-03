@@ -34,6 +34,7 @@ export async function getAllPlans() {
             select: {
                 id: true,
                 name: true,
+                price:true
             }
         });
         return success(statusCodes.OK, "Plans retrieved successfully", plans);
