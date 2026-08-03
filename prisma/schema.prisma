@@ -52,6 +52,7 @@ model Plan {
 model Coupon{
   id        Int      @id @default(autoincrement())
   couponId  String   @unique @map("coupon_id")
+  couponName String   @unique @map("coupon_name")
   discount  Int
   createdAt DateTime @default(now()) @map("created_at")
 
