@@ -8,6 +8,7 @@ async function main() {
       name: `FREE`,
       priceId: `0`,
       productId: `0`,
+      price: 0,
     },
   })
   console.log('Default row seeded successfully.')
