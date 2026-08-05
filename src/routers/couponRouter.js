@@ -28,9 +28,19 @@ router.post("/create",
 
 router.post("/user/create",
     validateToken,
+    isAdmin,
+    body("userId")
+        .notEmpty()
+        .withMessage("User ID is required")
+        .isNumeric()
+        .withMessage("User ID must be a number")
+        .toInt(),
     body("couponId")
         .notEmpty()
-        .withMessage("Coupon ID is required"),
+        .withMessage("Coupon ID is required")
+        .isNumeric()
+        .withMessage("Coupon ID must be a number")
+        .toInt(),
     validateRequest,
     couponController.createUserCoupon
 );
@@ -45,7 +55,10 @@ router.post("/delete",
     isAdmin,
     body("couponId")
         .notEmpty()
-        .withMessage("Coupon ID is required"),
+        .withMessage("Coupon ID is required")
+        .isNumeric()
+        .withMessage("Coupon ID must be a number")
+        .toInt(),
     validateRequest,
     couponController.deleteCoupon
 )

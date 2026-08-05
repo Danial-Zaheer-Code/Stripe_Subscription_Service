@@ -20,7 +20,7 @@ export async function getUserCoupons(req, res) {
 }
 
 export async function deleteCoupon(req, res) {
-    const { couponId } = req.params;
+    const { couponId } = req.body;
     const result = await couponServices.deleteCoupon(couponId);
     return res.status(result.status).json(result);
 }
