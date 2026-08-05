@@ -67,6 +67,7 @@ export async function subscribe(userId, planId, couponId) {
                     id: true,
                     coupon: {
                         select: {
+                            id: true,
                             couponId: true,
                         }
                     }
@@ -91,7 +92,6 @@ export async function subscribe(userId, planId, couponId) {
 
             coupon = isUserCouponValid.coupon;
         }
-
 
         if (existingUser.plan.name == "FREE") {
             return await createCheckoutSession(existingUser, plan, coupon);
@@ -158,7 +158,7 @@ async function createCheckoutSession(user, plan, coupon) {
             }
         ];
 
-        sessionData.metadata.couponId = coupon.couponId;
+        sessionData.metadata.couponId = coupon.id
     }
 
     const session = await stripeClient.checkout.sessions.create(sessionData);
@@ -206,7 +206,7 @@ export async function handleStripeWebhook(event) {
                 const session = event.data.object;
 
                 if (session.metadata.couponId) {
-                    await prisma.userCoupon.update({
+                    await prisma.userCoupon.updateMany({
                         where: {
                             userId: Number(session.metadata.userId),
                             couponId: Number(session.metadata.couponId),
