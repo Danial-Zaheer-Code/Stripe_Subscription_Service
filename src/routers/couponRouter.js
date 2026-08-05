@@ -39,3 +39,13 @@ router.get("/user/all",
     validateToken,
     couponController.getUserCoupons
 );
+
+router.post("/delete",
+    validateToken,
+    isAdmin,
+    body("couponId")
+        .notEmpty()
+        .withMessage("Coupon ID is required"),
+    validateRequest,
+    couponController.deleteCoupon
+)

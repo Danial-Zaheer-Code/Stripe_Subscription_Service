@@ -18,3 +18,9 @@ export async function getUserCoupons(req, res) {
     const result = await couponServices.getUserCoupons(userId);
     return res.status(result.status).json(result);
 }
+
+export async function deleteCoupon(req, res) {
+    const { couponId } = req.params;
+    const result = await couponServices.deleteCoupon(couponId);
+    return res.status(result.status).json(result);
+}
