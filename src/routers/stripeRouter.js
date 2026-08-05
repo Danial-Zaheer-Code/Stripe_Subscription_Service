@@ -14,6 +14,12 @@ router.post('/subscribe',
         .isNumeric()
         .withMessage('Plan ID must be a number')
         .toInt(),
+    body('couponId')
+        .optional()
+        .withMessage('Coupon ID must be a string')
+        .isNumeric()
+        .withMessage('Coupon ID must be a number')
+        .toInt(),
     validateRequest,
     stripeController.paySubscription
 )

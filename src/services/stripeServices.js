@@ -4,7 +4,7 @@ import { success, failure } from "../utils/result.js"
 import { stripeClient } from "../config/stripeConfig.js"
 import { hasDaysPast } from "../utils/utils.js"
 
-export async function subscribe(userId, planId) {
+export async function subscribe(userId, planId, couponId) {
     try {
         const existingUser = await prisma.user.findUnique({
             where: {

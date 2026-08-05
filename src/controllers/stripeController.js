@@ -3,9 +3,9 @@ import { stripeClient } from '../config/stripeConfig.js';
 
 export async function paySubscription(req, res) {
     const userId = req.userId;
-    const { planId } = req.body;
+    const { planId, couponId } = req.body;
 
-    const result = await stripeService.subscribe(userId, planId);
+    const result = await stripeService.subscribe(userId, planId, couponId);
 
     return res.status(result.status).json(result.responseBody);
 }
