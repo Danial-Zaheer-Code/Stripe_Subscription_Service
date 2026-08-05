@@ -106,8 +106,8 @@ export async function getUserCoupons(userId) {
                     select: {
                         id: true,
                         couponId: true,
+                        couponName: true,
                         discount: true,
-                        expiryDate: true
                     }
                 }
             }
