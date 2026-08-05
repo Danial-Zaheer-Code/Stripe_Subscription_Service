@@ -16,7 +16,6 @@ router.post('/subscribe',
         .toInt(),
     body('couponId')
         .optional()
-        .withMessage('Coupon ID must be a string')
         .isNumeric()
         .withMessage('Coupon ID must be a number')
         .toInt(),

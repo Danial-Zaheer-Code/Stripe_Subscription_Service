@@ -1,4 +1,4 @@
-import * as stausCode from "../utils/statusCodes.js"
+import * as statusCode from "../utils/statusCodes.js"
 import { prisma } from "../lib/prisma.js"
 import { success, failure } from "../utils/result.js"
 import { stripeClient } from "../config/stripeConfig.js"
@@ -25,7 +25,7 @@ export async function subscribe(userId, planId, couponId) {
         });
 
         if (!existingUser) {
-            return failure(stausCode.NOT_FOUND, "User not found");
+            return failure(statusCode.NOT_FOUND, "User not found");
         }
 
         const plan = await prisma.plan.findUnique({
@@ -35,34 +35,73 @@ export async function subscribe(userId, planId, couponId) {
             select: {
                 id: true,
                 name: true,
-                priceId: true
+                priceId: true,
+                productId: true
             }
         });
 
         if (!plan) {
-            return failure(stausCode.NOT_FOUND, "Plan not found");
+            return failure(statusCode.NOT_FOUND, "Plan not found");
         }
 
         if (existingUser.plan.name == plan.name) {
-            return failure(stausCode.BAD_REQUEST, "User already has the same plan");
+            return failure(statusCode.BAD_REQUEST, "User already has the same plan");
         }
 
         if (plan.name == "FREE") {
             await stripeClient.subscriptions.cancel(existingUser.subscriptionId);
-            return success(stausCode.OK, "Subscription cancelled successfully");
+            return success(statusCode.OK, "Subscription cancelled successfully");
         }
 
         existingUser.customerId = await createCustomerIfNotExists(existingUser);
 
+        let coupon = null;
+        if (couponId) {
+            const isUserCouponValid = await prisma.userCoupon.findFirst({
+                where: {
+                    userId: existingUser.id,
+                    couponId: couponId,
+                    isUsed: false,
+                },
+                select: {
+                    id: true,
+                    coupon: {
+                        select: {
+                            couponId: true,
+                        }
+                    }
+                }
+            })
+
+            if (!isUserCouponValid) {
+                return failure(statusCode.BAD_REQUEST, "Inavlid Coupon");
+            }
+
+            const couponData = await stripeClient.coupons.retrieve(isUserCouponValid.coupon.couponId,
+                { expand: ['applies_to'] }
+            );
+
+            if (!couponData.valid) {
+                return failure(statusCode.BAD_REQUEST, "Coupon is not valid");
+            }
+
+            if (couponData.applies_to && couponData.applies_to.products.length > 0 && !couponData.applies_to.products.includes(plan.productId)) {
+                return failure(statusCode.BAD_REQUEST, "Coupon is not applicable for this plan");
+            }
+
+            coupon = isUserCouponValid.coupon;
+        }
+
+
         if (existingUser.plan.name == "FREE") {
-            return await createCheckoutSession(existingUser, plan);
+            return await createCheckoutSession(existingUser, plan, coupon);
         }
 
         return await updateUserSubscription(existingUser, plan);
     }
     catch (error) {
         console.log(error)
-        return failure(stausCode.INTERNAL_SERVER_ERROR, "Something went wrong. Try again later")
+        return failure(statusCode.INTERNAL_SERVER_ERROR, "Something went wrong. Try again later")
     }
 }
 
@@ -93,32 +132,38 @@ async function createCustomerIfNotExists(user) {
     return customerId;
 }
 
-async function createCheckoutSession(user, plan) {
-    const session = await stripeClient.checkout.sessions.create({
+async function createCheckoutSession(user, plan, coupon) {
+    const sessionData = {
         customer: user.customerId,
-
         mode: "subscription",
-
         payment_method_types: ["card"],
-
         line_items: [
             {
                 price: plan.priceId,
                 quantity: 1
             }
         ],
-
         success_url: "http://localhost:3000/api/stripe/success",
         cancel_url: "http://localhost:3000/api/stripe/failure",
-
         metadata: {
             userId: user.id,
             planName: plan.name
         }
-    });
+    };
 
+    if (coupon) {
+        sessionData.discounts = [
+            {
+                coupon: coupon.couponId
+            }
+        ];
+
+        sessionData.metadata.couponId = coupon.couponId;
+    }
+
+    const session = await stripeClient.checkout.sessions.create(sessionData);
     return success(
-        stausCode.OK,
+        statusCode.OK,
         "Subscription session created successfully",
         {
             sessionUrl: session.url
@@ -147,7 +192,7 @@ async function updateUserSubscription(user, plan) {
     });
 
     return success(
-        stausCode.OK,
+        statusCode.OK,
         "Subscription updated successfully"
     );
 }
@@ -159,6 +204,19 @@ export async function handleStripeWebhook(event) {
             case "checkout.session.completed": {
                 console.log("Handling checkout.session.completed event.");
                 const session = event.data.object;
+
+                if (session.metadata.couponId) {
+                    await prisma.userCoupon.update({
+                        where: {
+                            userId: Number(session.metadata.userId),
+                            couponId: Number(session.metadata.couponId),
+                            isUsed: false
+                        },
+                        data: {
+                            isUsed: true
+                        }
+                    });
+                }
 
                 await prisma.user.update({
                     where: { customerId: session.customer },
@@ -175,14 +233,13 @@ export async function handleStripeWebhook(event) {
                 console.log("Handling invoice.paid event.");
                 const invoice = event.data.object;
 
-                const subscription = await stripeClient.subscriptions.retrieve(
-                    invoice.parent.subscription_details.subscription
-                );
-
-
                 if (invoice.billing_reason === "subscription_create") {
                     break;
                 }
+
+                const subscription = await stripeClient.subscriptions.retrieve(
+                    invoice.parent.subscription_details.subscription
+                );
 
                 await prisma.user.update({
                     where: { customerId: invoice.customer },
@@ -208,10 +265,10 @@ export async function handleStripeWebhook(event) {
             }
         }
 
-        return success(stausCode.OK, "Webhook handled successfully");
+        return success(statusCode.OK, "Webhook handled successfully");
 
     } catch (error) {
         console.error("Error handling Stripe webhook:", error);
-        return failure(stausCode.INTERNAL_SERVER_ERROR, "Error handling Stripe webhook");
+        return failure(statusCode.INTERNAL_SERVER_ERROR, "Error handling Stripe webhook");
     }
 }
