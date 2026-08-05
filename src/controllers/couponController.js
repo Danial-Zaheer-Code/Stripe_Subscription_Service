@@ -7,8 +7,7 @@ export async function createCoupon(req, res) {
 }
 
 export async function createUserCoupon(req, res) {
-    const { userId } = req.userId;
-    const { couponId } = req.body;
+    const { couponId, userId } = req.body;
     const result = await couponServices.createUserCoupon(userId, couponId);
     return res.status(result.status).json(result);
 }
