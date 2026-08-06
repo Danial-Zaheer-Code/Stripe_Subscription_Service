@@ -61,7 +61,7 @@ export async function subscribe(userId, planId, couponId) {
                 where: {
                     userId: existingUser.id,
                     couponId: couponId,
-                    count:{
+                    count: {
                         gt: 0
                     },
                 },
@@ -99,7 +99,7 @@ export async function subscribe(userId, planId, couponId) {
             return await createCheckoutSession(existingUser, plan, coupon);
         }
 
-        return await updateUserSubscription(existingUser, plan);
+        return await updateUserSubscription(existingUser, plan, coupon);
     }
     catch (error) {
         console.log(error)
@@ -173,12 +173,12 @@ async function createCheckoutSession(user, plan, coupon) {
     );
 }
 
-async function updateUserSubscription(user, plan) {
+async function updateUserSubscription(user, plan, coupon) {
     const subscription = await stripeClient.subscriptions.retrieve(
         user.subscriptionId
     );
 
-    await stripeClient.subscriptions.update(user.subscriptionId, {
+    const subscriptionData = {
         items: [
             {
                 id: subscription.items.data[0].id,
@@ -191,7 +191,19 @@ async function updateUserSubscription(user, plan) {
         },
         proration_behavior: "always_invoice",
         payment_behavior: "allow_incomplete"
-    });
+    }
+
+    if (coupon) {
+        subscriptionData.discounts = [
+            {
+                coupon: coupon.couponId
+            }
+        ];
+
+        subscriptionData.metadata.couponId = coupon.id
+    }
+
+    await stripeClient.subscriptions.update(user.subscriptionId, subscriptionData);
 
     return success(
         statusCode.OK,
@@ -208,17 +220,7 @@ export async function handleStripeWebhook(event) {
                 const session = event.data.object;
 
                 if (session.metadata.couponId) {
-                    await prisma.userCoupon.updateMany({
-                        where: {
-                            userId: Number(session.metadata.userId),
-                            couponId: Number(session.metadata.couponId),
-                        },
-                        data: {
-                            count: {
-                                decrement: 1
-                            }
-                        }
-                    });
+                    decrementCouponCount(session.metadata);
                 }
 
                 await prisma.user.update({
@@ -243,6 +245,10 @@ export async function handleStripeWebhook(event) {
                 const subscription = await stripeClient.subscriptions.retrieve(
                     invoice.parent.subscription_details.subscription
                 );
+
+                if (subscription.metadata.couponId) {
+                    decrementCouponCount(subscription.metadata);
+                }
 
                 await prisma.user.update({
                     where: { customerId: invoice.customer },
@@ -274,4 +280,18 @@ export async function handleStripeWebhook(event) {
         console.error("Error handling Stripe webhook:", error);
         return failure(statusCode.INTERNAL_SERVER_ERROR, "Error handling Stripe webhook");
     }
+}
+
+async function decrementCouponCount(metadata) {
+    await prisma.userCoupon.updateMany({
+        where: {
+            userId: Number(metadata.userId),
+            couponId: Number(metadata.couponId),
+        },
+        data: {
+            count: {
+                decrement: 1
+            }
+        }
+    });
 }
