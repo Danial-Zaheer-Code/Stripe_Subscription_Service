@@ -74,7 +74,7 @@ model UserCoupon{
   userId    Int      @map("user_id")
   couponId  Int      @map("coupon_id")
   createdAt DateTime @default(now()) @map("created_at")
-  isUsed    Boolean  @default(false) @map("is_used")
+  count    Int      @default(1)
 
   user      User     @relation(fields: [userId], references: [id])
   coupon    Coupon   @relation(fields: [couponId], references: [id])
