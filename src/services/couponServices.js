@@ -110,7 +110,7 @@ export async function getUserCoupons(userId) {
         const userCoupons = await prisma.userCoupon.findMany({
             where: {
                 userId: userId,
-                isUsed: {
+                count: {
                     gt: 0
                 }
             },
