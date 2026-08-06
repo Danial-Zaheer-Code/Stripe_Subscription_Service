@@ -61,7 +61,9 @@ export async function subscribe(userId, planId, couponId) {
                 where: {
                     userId: existingUser.id,
                     couponId: couponId,
-                    isUsed: false,
+                    count:{
+                        gt: 0
+                    },
                 },
                 select: {
                     id: true,
@@ -210,10 +212,11 @@ export async function handleStripeWebhook(event) {
                         where: {
                             userId: Number(session.metadata.userId),
                             couponId: Number(session.metadata.couponId),
-                            isUsed: false
                         },
                         data: {
-                            isUsed: true
+                            count: {
+                                decrement: 1
+                            }
                         }
                     });
                 }
