@@ -36,7 +36,19 @@ export async function createUserCoupon(userId, couponId) {
         });
 
         if (existingUserCoupon) {
-            return failure(statusCodes.CONFLICT, "User already has this coupon");
+           await prisma.userCoupon.updateMany({
+                where: {
+                    userId: existingUserCoupon.userId,
+                    couponId: existingUserCoupon.couponId
+                },
+                data: {
+                    count: {
+                        increment: 1
+                    }
+                }
+            });
+
+            return success(statusCodes.OK, "User coupon count incremented successfully");
         }
 
         const createdUserCoupon = await prisma.userCoupon.create({
@@ -98,7 +110,9 @@ export async function getUserCoupons(userId) {
         const userCoupons = await prisma.userCoupon.findMany({
             where: {
                 userId: userId,
-                isUsed: false
+                isUsed: {
+                    gt: 0
+                }
             },
             select: {
                 id: true,
